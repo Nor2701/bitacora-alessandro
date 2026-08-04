@@ -195,14 +195,43 @@ nav button.on::after{content:'';width:5px;height:5px;border-radius:50%;backgroun
 .fcell{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:1;background:#EFE9DD;box-shadow:var(--shadow)}
 .fcell img{width:100%;height:100%;object-fit:cover;display:block}
 .fcell:active{transform:scale(.97)}
-#fviewer{position:fixed;inset:0;background:rgba(15,10,30,.94);z-index:120;display:none;flex-direction:column}
+#fviewer{position:fixed;inset:0;background:rgba(15,10,30,.96);z-index:120;display:none;flex-direction:column}
 #fviewer.on{display:flex}
-#fviewer img{flex:1;object-fit:contain;min-height:0;width:100%}
+#fvStage{flex:1;min-height:0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;touch-action:none}
+#fvImg{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center;will-change:transform;user-select:none;-webkit-user-drag:none}
+#fvImg.snap{transition:transform .28s cubic-bezier(.2,.8,.3,1)}
+#fvImg.enter{animation:photoIn .3s cubic-bezier(.2,.8,.3,1)}
+@keyframes photoIn{from{opacity:.2;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
 #fviewer .bar{display:flex;align-items:center;gap:10px;padding:14px 18px calc(14px + env(safe-area-inset-bottom));color:#fff}
 #fviewer .bar .grow{flex:1;font-size:13.5px;opacity:.9}
 #fviewer .bar button{background:rgba(255,255,255,.15);border-radius:12px;padding:9px 14px;color:#fff;font-size:14px}
 #fviewer .x{position:absolute;top:calc(12px + env(safe-area-inset-top));right:14px;width:40px;height:40px;border-radius:50%;
-  background:rgba(255,255,255,.15);color:#fff;font-size:18px;z-index:2}
+  background:rgba(255,255,255,.15);color:#fff;font-size:18px;z-index:3}
+#fviewer .navb{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:60px;color:#fff;font-size:34px;
+  background:rgba(255,255,255,.1);z-index:2;display:flex;align-items:center;justify-content:center;font-weight:400}
+#fviewer .navb:active{background:rgba(255,255,255,.25)}
+#fviewer .navb.prev{left:0;border-radius:0 16px 16px 0}
+#fviewer .navb.next{right:0;border-radius:16px 0 0 16px}
+#fvCount{position:absolute;top:calc(16px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
+  color:#fff;font-size:13px;font-weight:700;background:rgba(255,255,255,.14);border-radius:999px;padding:4px 14px;z-index:2}
+#fvHint{font-size:11px;opacity:.55}
+/* ===== ANIMACIONES ===== */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes popIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+.wrap.anim{animation:fadeUp .3s cubic-bezier(.2,.8,.3,1)}
+.tl .ev{animation:fadeUp .34s cubic-bezier(.2,.8,.3,1) both}
+.tl .ev:nth-child(1){animation-delay:.03s}.tl .ev:nth-child(2){animation-delay:.07s}
+.tl .ev:nth-child(3){animation-delay:.11s}.tl .ev:nth-child(4){animation-delay:.15s}
+.tl .ev:nth-child(5){animation-delay:.19s}.tl .ev:nth-child(n+6){animation-delay:.22s}
+.stats .stat{animation:popIn .35s cubic-bezier(.2,.8,.3,1) both}
+.stats .stat:nth-child(2){animation-delay:.05s}.stats .stat:nth-child(3){animation-delay:.1s}.stats .stat:nth-child(4){animation-delay:.15s}
+.fgrid .fcell{animation:popIn .32s cubic-bezier(.2,.8,.3,1) both}
+.fgrid .fcell:nth-child(2){animation-delay:.04s}.fgrid .fcell:nth-child(3){animation-delay:.08s}
+.fgrid .fcell:nth-child(4){animation-delay:.12s}.fgrid .fcell:nth-child(5){animation-delay:.16s}
+.fgrid .fcell:nth-child(n+6){animation-delay:.2s}
+.qgrid .qbtn{transition:transform .12s, box-shadow .2s}
+.qgrid .qbtn:active{transform:scale(.94)}
+nav button .e{transition:transform .2s cubic-bezier(.3,1.4,.5,1)}
 .upBtn{width:100%;padding:15px;border-radius:16px;border:2px dashed #D8D2C6;color:var(--muted);font-size:15px;margin-top:14px;background:#fff}
 /* ===== USUARIOS ===== */
 .urow{display:flex;align-items:center;gap:12px;padding:12px 2px;border-top:1px solid var(--line)}
@@ -336,8 +365,12 @@ nav button.on::after{content:'';width:5px;height:5px;border-radius:50%;backgroun
 
 <div id="fviewer">
   <button class="x" onclick="cerrarFoto()">✕</button>
-  <img id="fvImg" alt="">
-  <div class="bar"><div class="grow" id="fvInfo"></div><button id="fvDel" onclick="borrarFoto()">🗑️ Eliminar</button></div>
+  <div id="fvCount"></div>
+  <button class="navb prev" onclick="fotoNav(-1)">‹</button>
+  <button class="navb next" onclick="fotoNav(1)">›</button>
+  <div id="fvStage"><img id="fvImg" alt=""></div>
+  <div class="bar"><div class="grow"><span id="fvInfo"></span><br><span id="fvHint">Desliza para pasar · pellizca o doble toque para zoom</span></div>
+  <button id="fvDel" onclick="borrarFoto()">🗑️ Eliminar</button></div>
 </div>
 
 <div id="ovl" onclick="closeSheet()"></div>
@@ -531,6 +564,7 @@ function toggleDay(iso){$('day_'+iso).classList.toggle('open');}
 function go(v){['Hoy','Hist','Vac','Crecer','Fotos'].forEach(x=>{
   $('v'+x).classList.toggle('hidden',x!==v);
   $('nb'+x).classList.toggle('on',x===v);});
+  const el=$('v'+v);el.classList.remove('anim');void el.offsetWidth;el.classList.add('anim');
   if(v==='Crecer')setTimeout(drawCharts,50);
   window.scrollTo(0,0);}
 
@@ -794,15 +828,79 @@ function renderFotos(){
   $('fotosSub').textContent=FOTOS.length?FOTOS.length+' recuerdos guardados':'Los recuerdos de Alessandro';
   $('fGrid').innerHTML=FOTOS.map(f=>'<div class="fcell" onclick="verFoto(\''+f.id+'\')"><img src="'+f.thumb+'" alt=""></div>').join('')||
     '<div class="empty" style="grid-column:1/-1"><span class="e">📷</span>Aún no hay fotos.<br>Sube la primera con el botón de arriba.</div>';}
-let _fvId=null;
-async function verFoto(id){
-  const f=FOTOS.find(x=>x.id===id);if(!f)return;
-  _fvId=id;$('fvImg').src=f.thumb;
-  $('fvInfo').textContent=(f.autor?'Subida por '+f.autor+' · ':'')+(f.fecha?f.fecha.split('-').reverse().join('/'):'');
-  $('fvDel').style.display=(esAdmin()||f.autor===quien())?'':'none';
+let _fvId=null,_fvIdx=-1;
+let _z=1,_tx=0,_ty=0;
+function aplicarZoom(snap){
+  const img=$('fvImg');
+  if(snap)img.classList.add('snap');else img.classList.remove('snap');
+  const st=$('fvStage'),lim=(m)=>Math.max(0,(_z-1)*m/2);
+  _tx=Math.max(-lim(st.clientWidth),Math.min(lim(st.clientWidth),_tx));
+  _ty=Math.max(-lim(st.clientHeight),Math.min(lim(st.clientHeight),_ty));
+  img.style.transform='translate('+_tx+'px,'+_ty+'px) scale('+_z+')';}
+function resetZoom(){_z=1;_tx=0;_ty=0;aplicarZoom(false);}
+function verFoto(id){
+  _fvIdx=FOTOS.findIndex(x=>x.id===id);if(_fvIdx<0)return;
   $('fviewer').classList.add('on');
-  try{const d=await DB.collection(C_FFULL).doc(id).get();if(d.exists&&_fvId===id)$('fvImg').src=d.data().data;}catch(e){}}
-function cerrarFoto(){$('fviewer').classList.remove('on');_fvId=null;}
+  mostrarFoto();}
+async function mostrarFoto(){
+  const f=FOTOS[_fvIdx];if(!f)return;
+  _fvId=f.id;resetZoom();
+  const img=$('fvImg');
+  img.classList.remove('enter');void img.offsetWidth;img.classList.add('enter');
+  img.src=f.thumb;
+  $('fvInfo').textContent=(f.autor?'Subida por '+f.autor+' · ':'')+(f.fecha?f.fecha.split('-').reverse().join('/'):'');
+  $('fvCount').textContent=(_fvIdx+1)+' / '+FOTOS.length;
+  $('fvDel').style.display=(esAdmin()||f.autor===quien())?'':'none';
+  try{const d=await DB.collection(C_FFULL).doc(f.id).get();if(d.exists&&_fvId===f.id)img.src=d.data().data;}catch(e){}}
+function fotoNav(d){
+  if(!FOTOS.length)return;
+  _fvIdx=(_fvIdx+d+FOTOS.length)%FOTOS.length;
+  mostrarFoto();}
+function cerrarFoto(){$('fviewer').classList.remove('on');_fvId=null;_fvIdx=-1;resetZoom();}
+/* gestos: swipe, pinch, doble toque, pan */
+(function(){
+  const st=document.getElementById('fvStage');
+  let t0=null,d0=0,z0=1,px=0,py=0,swx=0,swy=0,swipeando=false,lastTap=0;
+  function dist(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);}
+  st.addEventListener('touchstart',e=>{
+    if(e.touches.length===2){d0=dist(e.touches);z0=_z;swipeando=false;}
+    else if(e.touches.length===1){
+      const t=e.touches[0];px=t.clientX-_tx;py=t.clientY-_ty;swx=t.clientX;swy=t.clientY;swipeando=(_z===1);
+      const ahora=Date.now();
+      if(ahora-lastTap<300){ // doble toque
+        if(_z>1){resetZoom();aplicarZoom(true);}
+        else{_z=2.4;aplicarZoom(true);}
+        swipeando=false;}
+      lastTap=ahora;}
+  },{passive:true});
+  st.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    if(e.touches.length===2){
+      _z=Math.max(1,Math.min(4,z0*dist(e.touches)/d0));aplicarZoom(false);}
+    else if(e.touches.length===1&&_z>1){
+      const t=e.touches[0];_tx=t.clientX-px;_ty=t.clientY-py;aplicarZoom(false);}
+  },{passive:false});
+  st.addEventListener('touchend',e=>{
+    if(e.touches.length)return;
+    if(_z<1.05&&_z!==1){resetZoom();aplicarZoom(true);}
+    if(swipeando&&e.changedTouches.length===1){
+      const t=e.changedTouches[0],dx=t.clientX-swx,dy=t.clientY-swy;
+      if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.4)fotoNav(dx<0?1:-1);
+      else if(dy>90&&Math.abs(dy)>Math.abs(dx)*1.4)cerrarFoto(); // deslizar hacia abajo cierra
+    }
+    swipeando=false;});
+  st.addEventListener('wheel',e=>{
+    if(!document.getElementById('fviewer').classList.contains('on'))return;
+    e.preventDefault();
+    _z=Math.max(1,Math.min(4,_z*(e.deltaY<0?1.15:0.87)));
+    if(_z<1.05)_z=1;aplicarZoom(false);
+  },{passive:false});
+  window.addEventListener('keydown',e=>{
+    if(!document.getElementById('fviewer').classList.contains('on'))return;
+    if(e.key==='ArrowRight')fotoNav(1);
+    if(e.key==='ArrowLeft')fotoNav(-1);
+    if(e.key==='Escape')cerrarFoto();});
+})();
 function borrarFoto(){
   if(!_fvId)return;const id=_fvId;
   openSheet('<div class="sheetTitle">¿Eliminar esta foto?</div>'+

@@ -40,6 +40,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue2)}
 .loginCard h1{font-size:24px;margin:10px 0 2px}
 .loginCard p{color:var(--muted);font-size:14px;margin-bottom:20px}
 .loginCard input{margin-bottom:12px;text-align:center}
+.pwWrap{position:relative}
+.pwWrap input{padding-right:48px}
+.ojito{position:absolute;right:6px;top:calc(50% - 6px);transform:translateY(-50%);font-size:21px;padding:8px;opacity:.65;line-height:1}
+.ojito:active{transform:translateY(-50%) scale(.85)}
 .btnMain{display:block;width:100%;padding:15px;border-radius:16px;font-size:17px;color:#fff;
   background:linear-gradient(135deg,var(--blue),#7B6CF0);box-shadow:0 8px 20px rgba(91,157,245,.35);
   transition:transform .1s}
@@ -257,8 +261,11 @@ nav button .e{transition:transform .2s cubic-bezier(.3,1.4,.5,1)}
     <img class="lgFoto hidden" id="lgFoto" alt="">
     <h1>Bitácora de Alessandro</h1>
     <p>El diario del bebé de la familia</p>
-    <input id="lgUser" type="text" placeholder="Usuario" autocomplete="username" autocapitalize="none">
-    <input id="lgPass" type="password" placeholder="Clave" autocomplete="current-password">
+    <input id="lgUser" type="text" placeholder="Usuario" autocomplete="username" autocapitalize="none" autofocus>
+    <div class="pwWrap">
+      <input id="lgPass" type="password" placeholder="Clave" autocomplete="current-password">
+      <button class="ojito" id="ojito" type="button" onclick="togglePw()">👁️</button>
+    </div>
     <button class="btnMain" onclick="doLogin()">Entrar 🍼</button>
     <div id="loginErr"></div>
   </div>
@@ -397,7 +404,7 @@ function setSync(t,c){const d=document.getElementById('syncDot');d.textContent='
 AUTH.onAuthStateChanged(u=>{
   if(u){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');boot();resolveMe(true);}
   else{ME=null;USERS=[];_subs.forEach(fn=>{try{fn();}catch(e){}});_subs=[];_booted=false;clearInterval(_timer);
-    document.getElementById('login').classList.remove('hidden');document.getElementById('app').classList.add('hidden');}
+    document.getElementById('login').classList.remove('hidden');document.getElementById('app').classList.add('hidden');focoUsuario();}
 });
 function limpiar(s){return s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,'');}
 async function doLogin(){
@@ -413,6 +420,13 @@ async function doLogin(){
 const lf=document.getElementById('lgFoto');lf.src=LOGIN_AVS[i];lf.classList.remove('hidden');
 document.getElementById('lgEmoji').classList.add('hidden');}})();
 document.getElementById('lgPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+function togglePw(){
+  const i=document.getElementById('lgPass'),o=document.getElementById('ojito');
+  const ver=i.type==='password';
+  i.type=ver?'text':'password';o.textContent=ver?'🙈':'👁️';i.focus();}
+function focoUsuario(){setTimeout(()=>{const i=document.getElementById('lgUser');
+  if(i&&!document.getElementById('login').classList.contains('hidden'))i.focus();},250);}
+focoUsuario();
 
 let _booted=false,_subs=[];
 function boot(){

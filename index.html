@@ -241,13 +241,13 @@ nav button.on::after{content:'';width:5px;height:5px;border-radius:50%;backgroun
 <!-- ===== HOY ===== -->
 <div class="wrap" id="vHoy">
   <div class="hero">
-    <div class="av" id="hAv">👶</div>
-    <div>
+    <div class="av" id="hAv" onclick="openPerfil()">👶</div>
+    <div onclick="openPerfil()">
       <h1 id="hName">Alessandro</h1>
       <div class="sub" id="hDate"></div>
       <div style="margin-top:6px"><span class="chip" id="hAge"></span> <span class="chip hidden" id="hSangre"></span></div>
     </div>
-    <button class="gear" onclick="openAjustes()">⚙️</button>
+    <button class="gear" onclick="event.stopPropagation();openAjustes()">⚙️</button>
   </div>
 
   <div id="sleepBanner" class="sleepBanner hidden">
@@ -948,6 +948,35 @@ function drawChart(id,med,lo,hi,pts){
     pts.forEach(p=>{ctx.beginPath();ctx.arc(X(p[0]),Y(p[1]),4,0,7);ctx.fillStyle='#5B9DF5';ctx.fill();
       ctx.beginPath();ctx.arc(X(p[0]),Y(p[1]),2,0,7);ctx.fillStyle='#fff';ctx.fill();});}}
 window.addEventListener('resize',()=>{if(!$('vCrecer').classList.contains('hidden'))drawCharts();});
+
+/* ================= PERFIL DEL BEBÉ ================= */
+let _avPerfil=0;
+function openPerfil(){
+  const p=PERFIL||{};
+  _avPerfil=_avHero>=0?_avHero:0;
+  const ms=medidas();
+  const uKg=[...ms].reverse().find(m=>m.datos.kg),uCm=[...ms].reverse().find(m=>m.datos.cm);
+  const fnacTxt=p.fnac?p.fnac.split('-').reverse().join('/'):'—';
+  const filas=[
+    ['🎂','Nació',fnacTxt+(p.horaNac?' · '+p.horaNac:'')],
+    ['🏥','Lugar',p.lugarNac||'—'],
+    ['👶','Al nacer',(p.pesoNacer?p.pesoNacer+' kg':'—')+(p.tallaNacer?' · '+p.tallaNacer+' cm':'')],
+    ['🩸','Sangre',p.sangre||'—'],
+    ['⏳','Edad',edadTxt()],
+    ['📏','Ahora',(uKg?uKg.datos.kg+' kg':'—')+(uCm?' · '+uCm.datos.cm+' cm':'')]
+  ];
+  openSheet(
+  '<div class="sheetTitle">👶 '+(p.nombre||'Alessandro')+'</div>'+
+  '<img id="pfFoto" src="'+(AVATARS[_avPerfil]||'')+'" onclick="cambiarFotoPerfil()" '+
+    'style="width:100%;max-height:330px;object-fit:cover;border-radius:22px;box-shadow:var(--shadow);'+(AVATARS.length?'':'display:none;')+'margin-bottom:6px">'+
+  (AVATARS.length>1?'<div class="legend" style="margin-bottom:10px">Toca la foto para ver otra</div>':'')+
+  filas.map(f=>'<div class="mrow"><div style="font-size:18px">'+f[0]+'</div><div class="grow mut">'+f[1]+'</div><div style="font-weight:700;text-align:right">'+f[2]+'</div></div>').join('')+
+  '<button class="btnGhost" onclick="closeSheet();openAjustes()">Editar datos ⚙️</button>');}
+function cambiarFotoPerfil(){
+  if(AVATARS.length<2)return;
+  _avPerfil=(_avPerfil+1)%AVATARS.length;
+  $('pfFoto').src=AVATARS[_avPerfil];
+  _avHero=_avPerfil;$('hAv').innerHTML='<img src="'+AVATARS[_avHero]+'" alt="">';}
 
 /* ================= ONBOARDING / AJUSTES ================= */
 function openOnboarding(){openSheet(

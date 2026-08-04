@@ -399,14 +399,15 @@ AUTH.onAuthStateChanged(u=>{
   else{ME=null;USERS=[];_subs.forEach(fn=>{try{fn();}catch(e){}});_subs=[];_booted=false;clearInterval(_timer);
     document.getElementById('login').classList.remove('hidden');document.getElementById('app').classList.add('hidden');}
 });
+function limpiar(s){return s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,'');}
 async function doLogin(){
-  const u=document.getElementById('lgUser').value.trim().toLowerCase().replace(/\s+/g,''), p=document.getElementById('lgPass').value;
+  const u=limpiar(document.getElementById('lgUser').value), p=document.getElementById('lgPass').value;
   const err=document.getElementById('loginErr'); err.textContent='';
   if(!u||!p){err.textContent='Escribe el usuario y la clave';return;}
   const email=u.includes('@')?u:u+DOM;
-  const pass=u.includes('@')?p:p+SUF;
+  const pass=u.includes('@')?p:limpiar(p)+SUF;
   try{await AUTH.signInWithEmailAndPassword(email,pass);}
-  catch(ex){err.textContent='Usuario o clave incorrectos';}
+  catch(ex){err.textContent='Usuario o clave incorrectos. Ojo: la clave va sin acentos (tia, no tía)';}
 }
 (function(){if(LOGIN_AVS.length){const i=Math.floor(Math.random()*LOGIN_AVS.length);
 const lf=document.getElementById('lgFoto');lf.src=LOGIN_AVS[i];lf.classList.remove('hidden');
@@ -434,7 +435,7 @@ function boot(){
 function emailDe(u){return u.includes('@')?u:u+DOM;}
 function resolveMe(fromCache){
   const cu=AUTH.currentUser; if(!cu||!USERS.length)return;
-  ME=USERS.find(x=>emailDe(x.u)===cu.email)||null;
+  ME=USERS.find(x=>emailDe(x.u)===cu.email||(x.alias&&emailDe(x.alias)===cu.email))||null;
   if(ME&&ME.activo===false&&!fromCache){AUTH.signOut();setTimeout(()=>{const e=document.getElementById('loginErr');if(e)e.textContent='Este usuario fue desactivado';},300);}
 }
 function esAdmin(){return ME&&(ME.rol==='admin'||ME.rol==='superadmin');}

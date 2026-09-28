@@ -602,9 +602,12 @@ function closeSheet(){$('ovl').classList.remove('on');$('sheet').classList.remov
 /* ---- TETERO ---- */
 let _oz=4,_leche='formula';
 function openTetero(){
-  _oz=Number(localStorage.getItem('bebe_oz_last'))||4;_leche=localStorage.getItem('bebe_leche_last')||'formula';
+  const sug=Number(PERFIL&&PERFIL.ozSugerida)||0;
+  _oz=Math.max(Number(localStorage.getItem('bebe_oz_last'))||0,sug)||4;
+  _leche=localStorage.getItem('bebe_leche_last')||'formula';
   openSheet(
   '<div class="sheetTitle">🍼 Tetero</div>'+
+  (sug?'<div class="legend" style="margin-bottom:10px">💡 La pediatra indicó '+sug+' oz'+(PERFIL.ozSugeridaFecha?' (desde el '+PERFIL.ozSugeridaFecha.split('-').reverse().join('/')+')':'')+'</div>':'')+
   '<div class="bigNum"><button class="round" onclick="chOz(-0.5)">−</button>'+
   '<div class="val"><span id="ozVal">'+_oz+'</span><small> oz</small></div>'+
   '<button class="round" onclick="chOz(0.5)">＋</button></div>'+
@@ -1196,7 +1199,18 @@ function drawChart(id,med,lo,hi,pts){
     ctx.beginPath();ctx.strokeStyle='#5B9DF5';ctx.lineWidth=2.5;ctx.lineJoin='round';
     pts.forEach((p,i)=>i?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.stroke();
     pts.forEach(p=>{ctx.beginPath();ctx.arc(X(p[0]),Y(p[1]),4,0,7);ctx.fillStyle='#5B9DF5';ctx.fill();
-      ctx.beginPath();ctx.arc(X(p[0]),Y(p[1]),2,0,7);ctx.fillStyle='#fff';ctx.fill();});}}
+      ctx.beginPath();ctx.arc(X(p[0]),Y(p[1]),2,0,7);ctx.fillStyle='#fff';ctx.fill();});
+    let lastX=-99,lastAbove=false;
+    ctx.font='700 10.5px Quicksand';ctx.textAlign='center';
+    pts.forEach(p=>{const x=X(p[0]),y=Y(p[1]);
+      const lbl=String(Math.round(p[1]*100)/100).replace('.',',');
+      let above=true;
+      if(x-lastX<40)above=!lastAbove;
+      const ly=Math.max(11,Math.min(H-pb-3,above?y-9:y+19));
+      ctx.lineWidth=3;ctx.strokeStyle='rgba(255,255,255,.92)';ctx.strokeText(lbl,x,ly);
+      ctx.fillStyle='#3D77CE';ctx.fillText(lbl,x,ly);
+      lastX=x;lastAbove=above;});
+    ctx.textAlign='left';}}
 window.addEventListener('resize',()=>{if(!$('vCrecer').classList.contains('hidden'))drawCharts();});
 
 /* ================= PERFIL DEL BEBÉ ================= */

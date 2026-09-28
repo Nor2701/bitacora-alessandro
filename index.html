@@ -529,7 +529,7 @@ function evTitulo(ev){
   if(ev.tipo==='tetero')return 'Tetero · '+d.onzas+' oz';
   if(ev.tipo==='panal')return 'Pañal · '+(d.tipo==='pipi'?'Pipí 💧':d.tipo==='popo'?'Popó 💩':'Mixto');
   if(ev.tipo==='sueno')return 'Durmió '+durTxt(d.min||0);
-  if(ev.tipo==='peso')return 'Medida · '+(d.kg?d.kg+' kg':'')+(d.kg&&d.cm?' · ':'')+(d.cm?d.cm+' cm':'');
+  if(ev.tipo==='peso')return 'Medida · '+[d.kg?d.kg+' kg':'',d.cm?d.cm+' cm':'',d.cc?'CC '+d.cc+' cm':''].filter(Boolean).join(' · ');
   if(ev.tipo==='medicina')return 'Medicina · '+(d.nombre||'');
   if(ev.tipo==='bano')return 'Baño';
   if(ev.tipo==='nota')return 'Nota';
@@ -680,15 +680,16 @@ function openPeso(){openSheet(
   '<div class="sheetTitle">📏 Peso y talla</div>'+
   '<div class="frow">'+
   '<div class="fld"><label>Peso (kg)</label><input type="number" inputmode="decimal" step="0.01" id="pKg" placeholder="3.40"></div>'+
-  '<div class="fld"><label>Talla (cm)</label><input type="number" inputmode="decimal" step="0.5" id="pCm" placeholder="51"></div></div>'+
+  '<div class="fld"><label>Talla (cm)</label><input type="number" inputmode="decimal" step="0.5" id="pCm" placeholder="51"></div>'+
+  '<div class="fld"><label>CC (cm)</label><input type="number" inputmode="decimal" step="0.5" id="pCc" placeholder="40"></div></div>'+
   '<div class="fld"><label>Fecha</label><input type="datetime-local" id="pFecha" value="'+dtLocalValue(Date.now())+'"></div>'+
   '<div class="fld"><label>Nota (opcional)</label><input id="pNota" placeholder="Ej: control con el pediatra"></div>'+
   '<button class="btnMain" onclick="savePeso()">Guardar medida ✓</button>');}
 function savePeso(){
-  const kg=parseFloat($('pKg').value),cm=parseFloat($('pCm').value);
-  if(!kg&&!cm){toast('Escribe al menos un dato');return;}
+  const kg=parseFloat($('pKg').value),cm=parseFloat($('pCm').value),cc=parseFloat($('pCc').value);
+  if(!kg&&!cm&&!cc){toast('Escribe al menos un dato');return;}
   const ts=new Date($('pFecha').value).getTime()||Date.now();
-  saveEv({id:newId(),tipo:'peso',ts,fecha:hoyISO(new Date(ts)),datos:{kg:kg||null,cm:cm||null},nota:$('pNota').value.trim(),autor:quien()});
+  saveEv({id:newId(),tipo:'peso',ts,fecha:hoyISO(new Date(ts)),datos:{kg:kg||null,cm:cm||null,cc:cc||null},nota:$('pNota').value.trim(),autor:quien()});
   closeSheet();toast('📏 Medida guardada');}
 function openMedicina(){openSheet(
   '<div class="sheetTitle">💊 Medicina o vitamina</div>'+
@@ -718,7 +719,8 @@ function openEditar(id){
   if(ev.tipo==='tetero')campos='<div class="frow"><div class="fld"><label>Onzas</label><input type="number" step="0.5" id="edOz" value="'+d.onzas+'"></div>'+
     '<div class="fld"><label>Leche</label><select id="edLeche"><option value="formula"'+(d.leche==='formula'?' selected':'')+'>Fórmula</option><option value="materna"'+(d.leche==='materna'?' selected':'')+'>Materna</option><option value="mixta"'+(d.leche==='mixta'?' selected':'')+'>Mixta</option></select></div></div>';
   if(ev.tipo==='peso')campos='<div class="frow"><div class="fld"><label>Peso (kg)</label><input type="number" step="0.01" id="edKg" value="'+(d.kg||'')+'"></div>'+
-    '<div class="fld"><label>Talla (cm)</label><input type="number" step="0.5" id="edCm" value="'+(d.cm||'')+'"></div></div>';
+    '<div class="fld"><label>Talla (cm)</label><input type="number" step="0.5" id="edCm" value="'+(d.cm||'')+'"></div>'+
+    '<div class="fld"><label>CC (cm)</label><input type="number" step="0.5" id="edCc" value="'+(d.cc||'')+'"></div></div>';
   if(ev.tipo==='sueno')campos='<div class="fld"><label>Minutos</label><input type="number" id="edMin" value="'+(d.min||0)+'"></div>';
   if(ev.tipo==='medicina')campos='<div class="frow"><div class="fld"><label>Nombre</label><input id="edMNom" value="'+(d.nombre||'')+'"></div>'+
     '<div class="fld"><label>Dosis</label><input id="edMDos" value="'+(d.dosis||'')+'"></div></div>';
@@ -733,7 +735,7 @@ function saveEdit(id){
   const ts=new Date($('edHora').value).getTime()||ev.ts;
   ev.ts=ts;ev.fecha=hoyISO(new Date(ts));ev.nota=$('edNota').value.trim();
   if(ev.tipo==='tetero'){ev.datos.onzas=parseFloat($('edOz').value)||ev.datos.onzas;ev.datos.leche=$('edLeche').value;}
-  if(ev.tipo==='peso'){ev.datos.kg=parseFloat($('edKg').value)||null;ev.datos.cm=parseFloat($('edCm').value)||null;}
+  if(ev.tipo==='peso'){ev.datos.kg=parseFloat($('edKg').value)||null;ev.datos.cm=parseFloat($('edCm').value)||null;ev.datos.cc=parseFloat($('edCc').value)||null;}
   if(ev.tipo==='sueno'){ev.datos.min=parseInt($('edMin').value)||ev.datos.min;}
   if(ev.tipo==='medicina'){ev.datos.nombre=$('edMNom').value.trim();ev.datos.dosis=$('edMDos').value.trim();}
   saveEv(ev);closeSheet();toast('✓ Cambios guardados');}

@@ -317,6 +317,7 @@ nav button .e{transition:transform .2s cubic-bezier(.3,1.4,.5,1)}
     <div class="stat"><div class="e">💤</div><div class="n" id="sSueno">0h</div><div class="l">sueño</div></div>
   </div>
 
+  <button class="btnMain" style="margin-top:16px;background:linear-gradient(135deg,#F06FA8,#FFB39F);box-shadow:0 8px 20px rgba(240,111,168,.3)" onclick="openResumen()">📊 Resumen de Alessandro</button>
   <div class="secTitle">Hoy</div>
   <div class="tl" id="tlHoy"></div>
 </div>
@@ -823,11 +824,14 @@ function renderConsultas(){
     '<div class="empty"><span class="e">🩺</span>Sin consultas todavía.<br>Anota aquí cada visita al pediatra.</div>';
   renderProximos();
   renderVacResumen();}
-function renderProximos(){
+function proximosItems(){
   const items=[];
   CON.forEach(c=>{if(c.prox&&c.prox>=hoyISO())items.push({f:c.prox,t:'Consulta'+(c.medico?' · '+c.medico:'')});});
   EST.forEach(e=>{if(!e.fecha&&e.prog&&e.prog>=hoyISO())items.push({f:e.prog,t:e.nombre});});
   items.sort((a,b)=>a.f.localeCompare(b.f));
+  return items;}
+function renderProximos(){
+  const items=proximosItems();
   const pb=$('proxConsulta');
   if(items.length){pb.classList.remove('hidden');
     pb.innerHTML='<div style="font-size:26px">🗓️</div><div class="grow"><div class="t1">Lo que viene</div>'+
@@ -1214,6 +1218,74 @@ function drawChart(id,med,lo,hi,pts){
       lastX=x;lastAbove=above;});
     ctx.textAlign='left';}}
 window.addEventListener('resize',()=>{if(!$('vCrecer').classList.contains('hidden'))drawCharts();});
+
+/* ================= RESUMEN (estadísticas en vivo, sin IA) ================= */
+function interp(tab,m,col){
+  if(m<=tab[0][0])return tab[0][col];
+  for(let i=1;i<tab.length;i++)if(m<=tab[i][0]){const a=tab[i-1],b=tab[i],t=(m-a[0])/(b[0]-a[0]);return a[col]+(b[col]-a[col])*t;}
+  return tab[tab.length-1][col];}
+function cdf(z){const t=1/(1+.3275911*Math.abs(z)/Math.SQRT2);
+  const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-z*z/2);
+  return z>=0?(1+y)/2:(1-y)/2;}
+function percentilPeso(kg,m){
+  const lo=interp(OMS_PESO,m,1),med=interp(OMS_PESO,m,2),hi=interp(OMS_PESO,m,3);
+  const z=kg>=med?2*(kg-med)/(hi-med):2*(kg-med)/(med-lo);
+  return Math.max(1,Math.min(99,Math.round(cdf(z)*100)));}
+function resCard(icono,titulo,cuerpo){
+  return '<div class="vgroup" style="margin-bottom:12px"><div class="gh"><div class="t">'+icono+' '+titulo+'</div></div>'+cuerpo+'</div>';}
+function resFila(k,v){return '<div class="mrow"><div class="grow mut">'+k+'</div><div style="font-weight:700;text-align:right">'+v+'</div></div>';}
+function openResumen(){
+  const p=PERFIL||{};
+  const [y,mo,d]=(p.fnac||'2026-07-29').split('-').map(Number);
+  const dias=Math.floor((Date.now()-new Date(y,mo-1,d))/86400000);
+  const mEdad=edadMeses(Date.now());
+  const fmt=n=>String(Math.round(n*100)/100).replace('.',',');
+  let h='<div class="sheetTitle">📊 Resumen de '+(p.nombre||'Alessandro').split(' ').pop()+'</div>'+
+    '<div class="legend" style="margin-bottom:14px">'+edadTxt()+' · '+dias+' días de vida · se actualiza solo con lo que anota la familia</div>';
+  // Crecimiento
+  const ms=medidas(),uk=[...ms].reverse().find(m=>m.datos.kg),uc=[...ms].reverse().find(m=>m.datos.cm),ucc=[...ms].reverse().find(m=>m.datos.cc);
+  let c='';
+  if(uk){const pk=percentilPeso(uk.datos.kg,edadMeses(uk.ts));
+    c+=resFila('Peso ('+fmtF(uk.fecha)+')',fmt(uk.datos.kg)+' kg');
+    if(p.pesoNacer)c+=resFila('Ganó desde que nació','+'+fmt(uk.datos.kg-p.pesoNacer)+' kg');
+    c+=resFila('Comparado con la OMS','percentil ~'+pk+(pk>=50?' 💪':''));}
+  if(uc){const med=interp(OMS_TALLA,edadMeses(uc.ts),1),dif=uc.datos.cm-med;
+    c+=resFila('Talla ('+fmtF(uc.fecha)+')',fmt(uc.datos.cm)+' cm');
+    c+=resFila('vs promedio OMS',(dif>=0?'+':'')+fmt(dif)+' cm');}
+  if(ucc)c+=resFila('Perímetro cefálico',fmt(ucc.datos.cc)+' cm');
+  h+=resCard('📈','Crecimiento',c||'<div class="legend">Aún sin medidas.</div>');
+  // Rutina 7 días
+  const hoy=new Date(),dias7=[];for(let i=0;i<7;i++){const x=new Date(hoy);x.setDate(x.getDate()-i);dias7.push(hoyISO(x));}
+  const e7=EV.filter(e=>dias7.includes(e.fecha));
+  const tet=e7.filter(e=>e.tipo==='tetero'),oz=tet.reduce((s,e)=>s+(Number(e.datos.onzas)||0),0);
+  const pan=e7.filter(e=>e.tipo==='panal').length,sm=e7.filter(e=>e.tipo==='sueno').reduce((s,e)=>s+(Number(e.datos.min)||0),0);
+  const diasCon=new Set(tet.map(e=>e.fecha)).size;
+  let r='';
+  if(tet.length){r+=resFila('Teteros por día',fmt(tet.length/diasCon));r+=resFila('Onzas por día',fmt(oz/diasCon)+' oz');
+    r+=resFila('Tamaño promedio',fmt(oz/tet.length)+' oz');}
+  if(pan)r+=resFila('Pañales anotados',pan);
+  if(sm)r+=resFila('Sueño anotado',durTxt(sm));
+  if(p.ozSugerida)r+=resFila('Indicación actual','tetero de '+p.ozSugerida+' oz');
+  h+=resCard('🍼','Últimos 7 días',r+(tet.length?'':'<div class="legend" style="padding:8px 0">No se anotaron teteros esta semana. Entre más anoten, más completo sale este resumen 😉</div>'));
+  // Salud
+  const vDone=VAC.filter(v=>v.fecha).length,vToca=VAC.filter(v=>!v.fecha&&v.mes<=mEdad+0.05);
+  const estPend=EST.filter(e=>!e.fecha),ultC=CON[0];
+  let s=resFila('Vacunas puestas',vDone+' de '+VAC.length);
+  if(vToca.length)s+=resFila('Tocan ya ('+vToca.length+')',[...new Set(vToca.map(v=>v.nombre.split(' (')[0]))].join(', '));
+  s+=resFila('Consultas',CON.length+(ultC?' · última '+fmtF(ultC.fecha):''));
+  if(ultC&&ultC.medico)s+=resFila('Con',ultC.medico);
+  if(estPend.length)s+=resFila('Estudios pendientes',estPend.map(e=>e.nombre.split(' (')[0]).join(', '));
+  proximosItems().slice(0,3).forEach(i=>{s+=resFila('🗓️ '+fmtF(i.f),i.t);});
+  h+=resCard('🩺','Salud',s);
+  // Familia y recuerdos
+  const cuenta={};EV.forEach(e=>{if(e.autor)cuenta[e.autor]=(cuenta[e.autor]||0)+1;});FOTOS.forEach(f=>{if(f.autor)cuenta[f.autor]=(cuenta[f.autor]||0)+1;});
+  const top=Object.entries(cuenta).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  let f=resFila('Fotos guardadas',FOTOS.length);
+  if(FOTOS.length)f+='<div style="display:flex;gap:6px;margin:6px 0 4px">'+FOTOS.slice(0,4).map(x=>'<img src="'+x.thumb+'" onclick="closeSheet();go(\'Fotos\');verFoto(\''+x.id+'\')" style="flex:1;min-width:0;aspect-ratio:1;object-fit:cover;border-radius:12px">').join('')+'</div>';
+  top.forEach(([a,n],i)=>{f+=resFila((['🥇','🥈','🥉','⭐'][i])+' '+a,n+(n===1?' aporte':' aportes'));});
+  h+=resCard('💙','Familia y recuerdos',f);
+  h+='<button class="btnGhost" onclick="closeSheet()">Cerrar</button>';
+  openSheet(h);}
 
 /* ================= PERFIL DEL BEBÉ ================= */
 let _avPerfil=0;
